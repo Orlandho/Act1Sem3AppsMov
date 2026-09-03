@@ -1,3 +1,9 @@
 <resources>
-    <string name="app_name">Act1Sem3AppsMov</string>
+    <string name="app_name">SmartPayroll Pro</string>
+    <string name="title_view1">Registro de Colaborador</string>
+    <string name="subtitle_view1">Ingresa los datos laborales para calcular la liquidación</string>
+    <string name="title_view2">Liquidación de Nómina</string>
+    <string name="subtitle_view2">Desglose de horas, extras y bonificaciones dinámicas</string>
+    <string name="title_view3">Boleta Oficial de Pago</string>
+    <string name="subtitle_view3">Comprobante digital certificado y auditable</string>
 </resources>

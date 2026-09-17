@@ -418,16 +418,16 @@
                         android:textColor="@color/primary_dark"
                         android:textSize="14sp" />
 
-                    <!-- Botón Ajustar Bono (volver a Paso 2) -->
+                    <!-- Botón Modificar Liquidación Completa -->
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnBackToStep2"
+                        android:id="@+id/btnEditPayroll"
                         style="@style/ButtonRounded.Outlined"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="⬅ Modificar Bono (Paso 2)"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
+                        android:text="✏️ Modificar Liquidación Completa"
+                        android:textColor="@color/primary"
+                        android:textSize="14sp" />
                 </LinearLayout>
 
             </LinearLayout>

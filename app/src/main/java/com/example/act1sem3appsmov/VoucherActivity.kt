@@ -30,6 +30,28 @@ class VoucherActivity : AppCompatActivity() {
         }
     }
 
+    // Launcher para abrir la vista dedicada de edición y refrescar la boleta in-situ sin regresar al Dashboard
+    private val editPayrollLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val updated = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                result.data?.getSerializableExtra(
+                    EmployeePayrollData.EXTRA_PAYROLL_DATA,
+                    EmployeePayrollData::class.java
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                result.data?.getSerializableExtra(EmployeePayrollData.EXTRA_PAYROLL_DATA) as? EmployeePayrollData
+            }
+            if (updated != null) {
+                payrollData = updated
+                setupViews()
+                Toast.makeText(this, "✅ Boleta actualizada en tiempo real", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityVoucherBinding.inflate(layoutInflater)
@@ -80,6 +102,7 @@ class VoucherActivity : AppCompatActivity() {
             val dbHelper = PayrollDbHelper(this)
             val newId = dbHelper.insert(data)
             if (newId > 0) {
+                payrollData = data.copy(id = newId)
                 Toast.makeText(this, "✅ Liquidación guardada en el historial", Toast.LENGTH_SHORT).show()
             }
         }
@@ -155,9 +178,13 @@ class VoucherActivity : AppCompatActivity() {
             finish()
         }
 
-        // Volver a ajustar el bono en Paso 2
-        binding.btnBackToStep2.setOnClickListener {
-            finish()
+        // Modificar la liquidación completa abriendo la nueva pantalla EditPayrollActivity
+        binding.btnEditPayroll.setOnClickListener {
+            val data = payrollData ?: return@setOnClickListener
+            val intent = Intent(this, EditPayrollActivity::class.java).apply {
+                putExtra(EmployeePayrollData.EXTRA_PAYROLL_DATA, data)
+            }
+            editPayrollLauncher.launch(intent)
         }
     }
 

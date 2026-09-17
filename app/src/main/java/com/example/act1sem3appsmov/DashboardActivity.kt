@@ -50,12 +50,11 @@ class DashboardActivity : AppCompatActivity() {
                 startActivity(intent)
             },
             onEditClick = { item ->
-                // Diálogo modal BottomSheet para editar (UPDATE)
-                val dialog = EditPayrollBottomSheetDialog(item) { updatedItem ->
-                    dbHelper.update(updatedItem)
-                    loadDashboardData(binding.etSearch.text?.toString())
+                // Abrir la pantalla completa dedicada de edición (UPDATE)
+                val intent = Intent(this, EditPayrollActivity::class.java).apply {
+                    putExtra(EmployeePayrollData.EXTRA_PAYROLL_DATA, item)
                 }
-                dialog.show(supportFragmentManager, EditPayrollBottomSheetDialog.TAG)
+                startActivity(intent)
             },
             onDeleteClick = { item ->
                 // Diálogo de confirmación para eliminar (DELETE)

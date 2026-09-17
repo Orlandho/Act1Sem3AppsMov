@@ -58,12 +58,31 @@ class VoucherActivity : AppCompatActivity() {
     }
 
     private fun generateMetadata() {
-        val dateFormat = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
-        issueDate = dateFormat.format(Date())
+        val data = payrollData ?: return
 
-        val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
-        val randomDigits = (1000..9999).random()
-        voucherFolio = "FOLIO: PAY-${yearFormat.format(Date())}-$randomDigits"
+        if (data.voucherFolio.isNotEmpty()) {
+            // Viene del historial del Dashboard
+            voucherFolio = data.voucherFolio
+            issueDate = data.issueDate
+        } else {
+            // Nueva liquidación emitida desde el flujo de 3 vistas
+            val dateFormat = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+            issueDate = dateFormat.format(Date())
+
+            val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
+            val randomDigits = (1000..9999).random()
+            voucherFolio = "FOLIO: PAY-${yearFormat.format(Date())}-$randomDigits"
+
+            data.voucherFolio = voucherFolio
+            data.issueDate = issueDate
+
+            // Persistir automáticamente en SQLite (CREATE)
+            val dbHelper = PayrollDbHelper(this)
+            val newId = dbHelper.insert(data)
+            if (newId > 0) {
+                Toast.makeText(this, "✅ Liquidación guardada en el historial", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun setupViews() {
@@ -121,6 +140,15 @@ class VoucherActivity : AppCompatActivity() {
         // Dinámica de Reinicio: Volver al Paso 1 limpiando el stack de navegación
         binding.btnRestart.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+            finish()
+        }
+
+        // Volver al Dashboard Central con historial y métricas
+        binding.btnGoToDashboard.setOnClickListener {
+            val intent = Intent(this, DashboardActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
             }
             startActivity(intent)

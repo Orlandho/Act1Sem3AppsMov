@@ -407,6 +407,17 @@
                         android:textColor="@color/primary"
                         android:textSize="14sp" />
 
+                    <!-- Botón Volver al Dashboard Central -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnGoToDashboard"
+                        style="@style/ButtonRounded.Secondary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="📊 Volver al Dashboard Central"
+                        android:textColor="@color/primary_dark"
+                        android:textSize="14sp" />
+
                     <!-- Botón Ajustar Bono (volver a Paso 2) -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnBackToStep2"

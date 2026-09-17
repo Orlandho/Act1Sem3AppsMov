@@ -85,4 +85,41 @@ class EmployeePayrollDataTest {
         assertTrue(text.contains("PAY-2026-9999"))
         assertTrue(text.contains("TOTAL NETO A PAGAR"))
     }
+
+    @Test
+    fun extendedFieldsAndCopyUpdate_forCrudLifecycle() {
+        val original = EmployeePayrollData(
+            id = 1L,
+            firstName = "Lucia",
+            lastName = "Vargas",
+            employeeCode = "EMP-045",
+            hourlyRate = 25.0,
+            hoursWorked = 40.0,
+            bonusPercentage = 10.0,
+            voucherFolio = "FOLIO: PAY-2026-1234",
+            issueDate = "17 Sep 2026, 10:00 AM"
+        )
+
+        assertEquals(1L, original.id)
+        assertEquals("FOLIO: PAY-2026-1234", original.voucherFolio)
+        assertEquals("17 Sep 2026, 10:00 AM", original.issueDate)
+        assertEquals(1000.0, original.regularPay, 0.001)
+
+        // Simular UPDATE en el CRUD: cambiar a 48 horas y tarifa $30
+        val updated = original.copy(
+            hoursWorked = 48.0,
+            hourlyRate = 30.0,
+            bonusPercentage = 15.0
+        )
+
+        assertEquals(1L, updated.id)
+        assertEquals("FOLIO: PAY-2026-1234", updated.voucherFolio)
+        assertEquals(8.0, updated.overtimeHours, 0.001)
+        assertEquals(1200.0, updated.regularPay, 0.001)
+        assertEquals(360.0, updated.overtimePay, 0.001)
+        assertEquals(1560.0, updated.subtotalPay, 0.001)
+        assertEquals(234.0, updated.bonusAmount, 0.001) // 15% de 1560
+        assertEquals(1794.0, updated.grossPay, 0.001)
+        assertEquals(1650.48, updated.netPay, 0.001)
+    }
 }

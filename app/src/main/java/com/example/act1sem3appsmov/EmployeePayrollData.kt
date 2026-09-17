@@ -17,7 +17,11 @@ data class EmployeePayrollData(
     val employeeCode: String,
     val hourlyRate: Double,
     val hoursWorked: Double,
-    var bonusPercentage: Double = 10.0
+    var bonusPercentage: Double = 10.0,
+    val id: Long = 0L,
+    var voucherFolio: String = "",
+    var issueDate: String = "",
+    val createdAt: Long = System.currentTimeMillis()
 ) : Serializable {
 
     val fullName: String

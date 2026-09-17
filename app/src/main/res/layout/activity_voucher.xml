@@ -375,12 +375,23 @@
                     android:layout_marginTop="16dp"
                     android:orientation="vertical">
 
+                    <!-- Botón Descargar Boleta .txt (Storage Access Framework) -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDownloadReceipt"
+                        style="@style/ButtonRounded"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:text="📥 Descargar Boleta (.txt)"
+                        android:textSize="15sp"
+                        app:backgroundTint="@color/primary" />
+
                     <!-- Botón Compartir Comprobante (Intent Implícito) -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnShareReceipt"
                         style="@style/ButtonRounded"
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
+                        android:layout_marginTop="8dp"
                         android:text="📲 Compartir Comprobante"
                         android:textSize="15sp"
                         app:backgroundTint="@color/secondary" />

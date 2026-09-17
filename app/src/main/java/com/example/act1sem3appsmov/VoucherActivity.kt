@@ -1,9 +1,11 @@
 package com.example.act1sem3appsmov
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.example.act1sem3appsmov.databinding.ActivityVoucherBinding
 import java.text.SimpleDateFormat
@@ -16,6 +18,17 @@ class VoucherActivity : AppCompatActivity() {
     private var payrollData: EmployeePayrollData? = null
     private var voucherFolio: String = ""
     private var issueDate: String = ""
+
+    // Contrato SAF nativo para guardar y descargar el archivo de texto en el dispositivo
+    private val createDocumentLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri: Uri? ->
+        if (uri != null) {
+            saveReceiptToFile(uri)
+        } else {
+            Toast.makeText(this, "Descarga cancelada", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,6 +94,14 @@ class VoucherActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
+        // Descargar comprobante en archivo de texto (.txt) mediante Storage Access Framework
+        binding.btnDownloadReceipt.setOnClickListener {
+            val data = payrollData ?: return@setOnClickListener
+            val safeCode = data.employeeCode.replace("[^a-zA-Z0-9_-]".toRegex(), "_")
+            val defaultFileName = "Boleta_${safeCode}_${System.currentTimeMillis()}.txt"
+            createDocumentLauncher.launch(defaultFileName)
+        }
+
         // Dinámica de Compartir Comprobante (Intent Implícito nativo de Android)
         binding.btnShareReceipt.setOnClickListener {
             val data = payrollData ?: return@setOnClickListener
@@ -109,6 +130,31 @@ class VoucherActivity : AppCompatActivity() {
         // Volver a ajustar el bono en Paso 2
         binding.btnBackToStep2.setOnClickListener {
             finish()
+        }
+    }
+
+    /**
+     * Escribe el comprobante oficial en el URI seleccionado por el usuario con codificación UTF-8.
+     */
+    private fun saveReceiptToFile(uri: Uri) {
+        val data = payrollData ?: return
+        val receiptContent = data.buildShareableReceipt(voucherFolio, issueDate)
+
+        try {
+            contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
+                writer.write(receiptContent)
+            }
+            Toast.makeText(
+                this,
+                "✅ Boleta guardada exitosamente en el dispositivo",
+                Toast.LENGTH_LONG
+            ).show()
+        } catch (e: Exception) {
+            Toast.makeText(
+                this,
+                "Error al guardar el archivo: ${e.localizedMessage}",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 }

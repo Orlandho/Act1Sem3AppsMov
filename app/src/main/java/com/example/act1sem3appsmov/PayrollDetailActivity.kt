@@ -103,6 +103,8 @@ class PayrollDetailActivity : AppCompatActivity() {
         binding.tvBonusLabel.text = "Bono por Desempeño (${bonusPercent.toInt()}%)"
         binding.tvSubtotalPay.text = data.formatMoney(subtotal)
         binding.tvBonusAmount.text = "+${data.formatMoney(bonusAmount)}"
+        binding.tvHealthDeduction.text = "-${data.formatMoney(data.healthDeduction)}"
+        binding.tvPensionDeduction.text = "-${data.formatMoney(data.pensionDeduction)}"
         binding.tvTotalDeductions.text = "-${data.formatMoney(totalDeductions)}"
         binding.tvNetPay.text = data.formatMoney(netPay)
     }

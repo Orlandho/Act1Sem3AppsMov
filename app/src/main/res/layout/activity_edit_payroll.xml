@@ -10,9 +10,11 @@
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipToPadding="false"
         android:fillViewport="true">
 
         <LinearLayout
+            android:id="@+id/llEditContent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -20,14 +22,14 @@
 
             <!-- Encabezado con Gradiente Distintivo para Modo Edición -->
             <LinearLayout
+                android:id="@+id/llHeader"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_gradient_header"
-                android:elevation="6dp"
                 android:orientation="vertical"
                 android:paddingHorizontal="24dp"
-                android:paddingTop="48dp"
-                android:paddingBottom="36dp">
+                android:paddingTop="20dp"
+                android:paddingBottom="24dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -85,7 +87,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="-20dp"
+                android:layout_marginTop="12dp"
                 android:orientation="vertical"
                 android:paddingHorizontal="16dp">
 

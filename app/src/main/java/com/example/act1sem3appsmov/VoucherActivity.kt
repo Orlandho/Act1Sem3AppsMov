@@ -57,6 +57,13 @@ class VoucherActivity : AppCompatActivity() {
         binding = ActivityVoucherBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        EdgeToEdgeHelper.applyEdgeToEdge(
+            activity = this,
+            rootView = binding.root,
+            headerView = binding.llHeader,
+            scrollContentView = binding.llVoucherContent
+        )
+
         // Recuperación de datos desde Vista 2
         payrollData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getSerializableExtra(

@@ -18,6 +18,13 @@ class PayrollDetailActivity : AppCompatActivity() {
         binding = ActivityPayrollDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        EdgeToEdgeHelper.applyEdgeToEdge(
+            activity = this,
+            rootView = binding.root,
+            headerView = binding.llHeader,
+            scrollContentView = binding.llDetailContent
+        )
+
         // Recuperación segura del objeto serializado enviado desde Vista 1
         payrollData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getSerializableExtra(

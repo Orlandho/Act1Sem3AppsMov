@@ -1,0 +1,26 @@
+flowchart TD
+    subgraph Ventana["Ventana de Dispositivo Edge-to-Edge (Target SDK 37 / Android 15+)"]
+        SB["Barra de Estado del Sistema (systemBars.top)\n• Controladores: isAppearanceLightStatusBars = false\n• Íconos blancos de alto contraste"]
+        
+        H["Encabezado Degradado Púrpura (bg_gradient_header)\n• Elevación = 0dp (sin superposición Z artificial)\n• Padding Top = 20dp + systemBars.top\n• Padding Bottom = 24dp"]
+        
+        CONT["Contenedor de Contenido (llDashboardContent / ll*Content)\n• Margen Superior = +12dp (espaciado limpio sin solapar)\n• clipToPadding = false"]
+        
+        CARD["Tarjeta MySQL & Métricas (cardMySQLStatus)\n• Elevación = 3dp\n• 100% visible y libre de recortes"]
+        
+        LIST["Listado RecyclerView / Formularios de Entrada\n• 5 Campos inmutables en MainActivity\n• Desplazamiento fluido en NestedScrollView"]
+        
+        SCROLL["Padding Inferior Dinámico\n• scrollContentView.updatePadding(bottom = base + systemBars.bottom)"]
+        
+        FAB["Botón de Acción Flotante (fabNewPayroll)\n• updateLayoutParams: bottomMargin = 20dp + systemBars.bottom\n• Posicionado limpiamente sobre la barra"]
+        
+        NB["Barra de Navegación del Sistema (systemBars.bottom)\n• Controladores: isAppearanceLightNavigationBars = true\n• Barra de 3 botones (Atrás, Home, Apps) o Gestos"]
+    end
+
+    SB -.->|WindowInsetsCompat| H
+    H --> CONT
+    CONT --> CARD
+    CONT --> LIST
+    LIST --> SCROLL
+    SCROLL -.->|WindowInsetsCompat| NB
+    FAB -.->|WindowInsetsCompat| NB

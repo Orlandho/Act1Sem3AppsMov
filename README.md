@@ -141,6 +141,49 @@ $$\text{Total Neto} = \text{Total Bruto} - \text{Deducciones}$$
 
 ---
 
+## 🎨 Diseño Visual Responsivo y Arquitectura Edge-to-Edge (Android 15+ / Target SDK 37)
+
+Para garantizar una experiencia visual pulcra y sin recortes en pantallas con recortes de cámara (punch hole/notch) y con la barra de navegación del sistema (3 botones clásicos o barra de gestos), se implementó el módulo centralizado [`EdgeToEdgeHelper.kt`](app/src/main/java/com/example/act1sem3appsmov/EdgeToEdgeHelper.kt):
+
+```mermaid
+flowchart TD
+    subgraph Ventana["Ventana de Dispositivo Edge-to-Edge (Target SDK 37 / Android 15+)"]
+        SB["Barra de Estado del Sistema (systemBars.top)\n• Controladores: isAppearanceLightStatusBars = false\n• Íconos blancos de alto contraste"]
+        
+        H["Encabezado Degradado Púrpura (bg_gradient_header)\n• Elevación = 0dp (sin superposición Z artificial)\n• Padding Top = 20dp + systemBars.top\n• Padding Bottom = 24dp"]
+        
+        CONT["Contenedor de Contenido (llDashboardContent / ll*Content)\n• Margen Superior = +12dp (espaciado limpio sin solapar)\n• clipToPadding = false"]
+        
+        CARD["Tarjeta MySQL & Métricas (cardMySQLStatus)\n• Elevación = 3dp\n• 100% visible y libre de recortes"]
+        
+        LIST["Listado RecyclerView / Formularios de Entrada\n• 5 Campos inmutables en MainActivity\n• Desplazamiento fluido en NestedScrollView"]
+        
+        SCROLL["Padding Inferior Dinámico\n• scrollContentView.updatePadding(bottom = base + systemBars.bottom)"]
+        
+        FAB["Botón de Acción Flotante (fabNewPayroll)\n• updateLayoutParams: bottomMargin = 20dp + systemBars.bottom\n• Posicionado limpiamente sobre la barra"]
+        
+        NB["Barra de Navegación del Sistema (systemBars.bottom)\n• Controladores: isAppearanceLightNavigationBars = true\n• Barra de 3 botones (Atrás, Home, Apps) o Gestos"]
+    end
+
+    SB -.->|WindowInsetsCompat| H
+    H --> CONT
+    CONT --> CARD
+    CONT --> LIST
+    LIST --> SCROLL
+    SCROLL -.->|WindowInsetsCompat| NB
+    FAB -.->|WindowInsetsCompat| NB
+```
+
+> **Diagrama Vectorial Escalable:** Puedes visualizar el diagrama vectorial SVG compilado en [`mermaid diagramas/arquitectura_ui_edgetoedge.svg`](mermaid%20diagramas/arquitectura_ui_edgetoedge.svg).
+
+### Mejoras Clave de Interfaz:
+1. **Tope Superior (Header vs. Tarjetas):** Se reemplazaron márgenes negativos que provocaban que las tarjetas quedaran ocultas bajo el borde curvo del encabezado degradado por espaciados limpios de `12dp` con elevaciones controladas (`0dp` en el contenedor y `3dp` en la tarjeta).
+2. **Tope Inferior (Barra de Navegación vs. Botones y FAB):** Se enlazó `ViewCompat.setOnApplyWindowInsetsListener` para calcular dinámicamente la altura de `systemBars.bottom`, elevando el botón flotante `fabNewPayroll` y extendiendo el `paddingBottom` de las vistas de desplazamiento (`NestedScrollView`).
+3. **Contraste de Iconografía del Sistema:** `isAppearanceLightStatusBars = false` mantiene íconos blancos legibles sobre el encabezado púrpura, mientras `isAppearanceLightNavigationBars = true` asegura íconos oscuros sobre el fondo claro de la barra de navegación.
+4. **Protección Horizontal y Plegables:** Se inyectan los insets laterales (`systemBars.left`, `systemBars.right`) previniendo que los bordes de la pantalla recorten los campos en orientación horizontal o en pantallas plegables.
+
+---
+
 ## 🧪 Pruebas Unitarias y Automatización
 
 Para validar la solidez de las fórmulas matemáticas, transiciones de estado de sincronización y ciclo de vida CRUD, se ejecutan las pruebas unitarias:

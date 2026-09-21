@@ -32,6 +32,14 @@ class DashboardActivity : AppCompatActivity() {
         binding = ActivityDashboardBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        EdgeToEdgeHelper.applyEdgeToEdge(
+            activity = this,
+            rootView = binding.root,
+            headerView = binding.llHeader,
+            scrollContentView = binding.llDashboardContent,
+            bottomActionView = binding.fabNewPayroll
+        )
+
         repository = PayrollRepository.getInstance(this)
         setupRecyclerView()
         setupListeners()

@@ -24,6 +24,13 @@ class EditPayrollActivity : AppCompatActivity() {
         binding = ActivityEditPayrollBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        EdgeToEdgeHelper.applyEdgeToEdge(
+            activity = this,
+            rootView = binding.root,
+            headerView = binding.llHeader,
+            scrollContentView = binding.llEditContent
+        )
+
         dbHelper = PayrollDbHelper(this)
 
         originalData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

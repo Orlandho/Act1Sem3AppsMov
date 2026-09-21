@@ -15,6 +15,13 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        EdgeToEdgeHelper.applyEdgeToEdge(
+            activity = this,
+            rootView = binding.root,
+            headerView = binding.llHeader,
+            scrollContentView = binding.llMainContent
+        )
+
         setupListeners()
     }
 

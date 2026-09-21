@@ -122,4 +122,26 @@ class EmployeePayrollDataTest {
         assertEquals(1794.0, updated.grossPay, 0.001)
         assertEquals(1650.48, updated.netPay, 0.001)
     }
+
+    @Test
+    fun syncMetadataFields_defaultAndModifiedValues() {
+        val data = EmployeePayrollData(
+            firstName = "Mario",
+            lastName = "Bros",
+            employeeCode = "EMP-999",
+            hourlyRate = 20.0,
+            hoursWorked = 40.0
+        )
+
+        assertEquals(EmployeePayrollData.SYNC_STATUS_PENDING, data.syncStatus)
+        assertEquals(null, data.remoteId)
+        assertEquals(null, data.syncError)
+
+        data.syncStatus = EmployeePayrollData.SYNC_STATUS_SYNCED
+        data.remoteId = 505L
+        data.syncError = null
+
+        assertEquals(EmployeePayrollData.SYNC_STATUS_SYNCED, data.syncStatus)
+        assertEquals(505L, data.remoteId)
+    }
 }

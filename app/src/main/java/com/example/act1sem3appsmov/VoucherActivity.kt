@@ -98,12 +98,12 @@ class VoucherActivity : AppCompatActivity() {
             data.voucherFolio = voucherFolio
             data.issueDate = issueDate
 
-            // Persistir automáticamente en SQLite (CREATE)
-            val dbHelper = PayrollDbHelper(this)
-            val newId = dbHelper.insert(data)
+            // Persistir automáticamente mediante Repository Pattern (Offline-First local SQLite + MySQL async)
+            val repository = PayrollRepository(this)
+            val newId = repository.insert(data)
             if (newId > 0) {
                 payrollData = data.copy(id = newId)
-                Toast.makeText(this, "✅ Liquidación guardada en el historial", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "✅ Liquidación guardada y enviada a sincronizar", Toast.LENGTH_SHORT).show()
             }
         }
     }

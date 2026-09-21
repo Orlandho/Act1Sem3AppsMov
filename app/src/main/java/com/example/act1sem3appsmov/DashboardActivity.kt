@@ -18,10 +18,13 @@ import java.util.Locale
  * Muestra métricas consolidadas en tiempo real y permite Administrar (Crear, Ver, Editar y Eliminar)
  * todas las liquidaciones generadas.
  */
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+
 class DashboardActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityDashboardBinding
-    private lateinit var dbHelper: PayrollDbHelper
+    private lateinit var repository: PayrollRepository
     private lateinit var historyAdapter: PayrollHistoryAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,7 +32,7 @@ class DashboardActivity : AppCompatActivity() {
         binding = ActivityDashboardBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        dbHelper = PayrollDbHelper(this)
+        repository = PayrollRepository(this)
         setupRecyclerView()
         setupListeners()
     }
@@ -75,6 +78,12 @@ class DashboardActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        // Abrir la pantalla de Configuración y Probador MySQL
+        binding.btnMySQLConfig.setOnClickListener {
+            val intent = Intent(this, MySQLConfigActivity::class.java)
+            startActivity(intent)
+        }
+
         // Búsqueda reactiva por nombre, código o folio
         binding.etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -87,7 +96,7 @@ class DashboardActivity : AppCompatActivity() {
 
     private fun loadDashboardData(query: String? = null) {
         // Cargar métricas agregadas del Dashboard
-        val metrics = dbHelper.getDashboardMetrics()
+        val metrics = repository.getDashboardMetrics()
         binding.tvStatTotalPayroll.text = formatCurrency(metrics.totalPayroll)
         binding.tvStatCount.text = "${metrics.totalCount} ${if (metrics.totalCount == 1) "boleta" else "boletas"}"
         binding.tvStatOvertimeHours.text = "${"%.1f".format(metrics.totalOvertimeHours)} hrs"
@@ -95,7 +104,7 @@ class DashboardActivity : AppCompatActivity() {
         binding.tvStatAvgPayroll.text = formatCurrency(metrics.avgPayroll)
 
         // Cargar lista filtrada del historial
-        val payrolls = dbHelper.getAll(query)
+        val payrolls = repository.getAll(query)
         historyAdapter.submitList(payrolls)
 
         binding.tvHistoryBadgeCount.text = "${payrolls.size} ${if (payrolls.size == 1) "registro" else "registros"}"
@@ -107,14 +116,21 @@ class DashboardActivity : AppCompatActivity() {
             binding.llEmptyState.visibility = View.GONE
             binding.rvPayrollHistory.visibility = View.VISIBLE
         }
+
+        // Disparar sincronización asíncrona de registros pendientes
+        lifecycleScope.launch {
+            repository.syncPendingRecords()
+            val updatedPayrolls = repository.getAll(binding.etSearch.text?.toString())
+            historyAdapter.submitList(updatedPayrolls)
+        }
     }
 
     private fun confirmDelete(item: EmployeePayrollData) {
         MaterialAlertDialogBuilder(this)
             .setTitle("🗑️ Eliminar Liquidación")
-            .setMessage("¿Estás seguro de que deseas eliminar la liquidación de ${item.fullName} (${item.voucherFolio.ifEmpty { "ID #${item.id}" }})?\n\nEsta acción actualizará automáticamente los totales del Dashboard.")
+            .setMessage("¿Estás seguro de que deseas eliminar la liquidación de ${item.fullName} (${item.voucherFolio.ifEmpty { "ID #${item.id}" }})?\n\nEsta acción actualizará automáticamente los totales del Dashboard y sincronizará con MySQL.")
             .setPositiveButton("Eliminar") { _, _ ->
-                val deleted = dbHelper.delete(item.id)
+                val deleted = repository.delete(item)
                 if (deleted) {
                     loadDashboardData(binding.etSearch.text?.toString())
                     Snackbar.make(
@@ -123,7 +139,7 @@ class DashboardActivity : AppCompatActivity() {
                         Snackbar.LENGTH_LONG
                     ).setAction("Deshacer") {
                         // Opción de restaurar
-                        dbHelper.insert(item)
+                        repository.insert(item)
                         loadDashboardData(binding.etSearch.text?.toString())
                     }.show()
                 }

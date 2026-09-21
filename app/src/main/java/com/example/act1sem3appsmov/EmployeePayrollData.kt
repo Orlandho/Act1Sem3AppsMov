@@ -21,7 +21,11 @@ data class EmployeePayrollData(
     val id: Long = 0L,
     var voucherFolio: String = "",
     var issueDate: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    var syncStatus: Int = SYNC_STATUS_PENDING,
+    var remoteId: Long? = null,
+    var syncError: String? = null,
+    var updatedAt: Long = System.currentTimeMillis()
 ) : Serializable {
 
     val fullName: String
@@ -110,5 +114,9 @@ data class EmployeePayrollData(
         const val OVERTIME_MULTIPLIER = 1.5
         const val HEALTH_RATE = 0.04
         const val PENSION_RATE = 0.04
+
+        const val SYNC_STATUS_PENDING = 0
+        const val SYNC_STATUS_SYNCED = 1
+        const val SYNC_STATUS_ERROR = 2
     }
 }

@@ -35,15 +35,31 @@ class PayrollDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 $COL_HOURS_WORKED REAL NOT NULL,
                 $COL_BONUS_PERCENTAGE REAL NOT NULL,
                 $COL_ISSUE_DATE TEXT NOT NULL,
-                $COL_CREATED_AT INTEGER NOT NULL
+                $COL_CREATED_AT INTEGER NOT NULL,
+                $COL_SYNC_STATUS INTEGER NOT NULL DEFAULT 0,
+                $COL_REMOTE_ID INTEGER,
+                $COL_SYNC_ERROR TEXT,
+                $COL_UPDATED_AT INTEGER NOT NULL DEFAULT 0
             )
         """.trimIndent()
         db.execSQL(createTableSql)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_PAYROLL")
-        onCreate(db)
+        if (oldVersion < 2) {
+            try {
+                db.execSQL("ALTER TABLE $TABLE_PAYROLL ADD COLUMN $COL_SYNC_STATUS INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE $TABLE_PAYROLL ADD COLUMN $COL_REMOTE_ID INTEGER")
+                db.execSQL("ALTER TABLE $TABLE_PAYROLL ADD COLUMN $COL_SYNC_ERROR TEXT")
+                db.execSQL("ALTER TABLE $TABLE_PAYROLL ADD COLUMN $COL_UPDATED_AT INTEGER NOT NULL DEFAULT 0")
+            } catch (e: Exception) {
+                db.execSQL("DROP TABLE IF EXISTS $TABLE_PAYROLL")
+                onCreate(db)
+            }
+        } else {
+            db.execSQL("DROP TABLE IF EXISTS $TABLE_PAYROLL")
+            onCreate(db)
+        }
     }
 
     /**
@@ -61,6 +77,10 @@ class PayrollDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             put(COL_BONUS_PERCENTAGE, payroll.bonusPercentage)
             put(COL_ISSUE_DATE, payroll.issueDate)
             put(COL_CREATED_AT, payroll.createdAt)
+            put(COL_SYNC_STATUS, payroll.syncStatus)
+            put(COL_REMOTE_ID, payroll.remoteId)
+            put(COL_SYNC_ERROR, payroll.syncError)
+            put(COL_UPDATED_AT, payroll.updatedAt)
         }
         return db.insert(TABLE_PAYROLL, null, values)
     }
@@ -134,12 +154,36 @@ class PayrollDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             put(COL_HOURLY_RATE, payroll.hourlyRate)
             put(COL_HOURS_WORKED, payroll.hoursWorked)
             put(COL_BONUS_PERCENTAGE, payroll.bonusPercentage)
+            put(COL_SYNC_STATUS, payroll.syncStatus)
+            put(COL_REMOTE_ID, payroll.remoteId)
+            put(COL_SYNC_ERROR, payroll.syncError)
+            put(COL_UPDATED_AT, payroll.updatedAt)
         }
         val rowsAffected = db.update(
             TABLE_PAYROLL,
             values,
             "$COL_ID = ?",
             arrayOf(payroll.id.toString())
+        )
+        return rowsAffected > 0
+    }
+
+    /**
+     * Actualiza únicamente los metadatos de sincronización de un registro.
+     */
+    fun updateSyncMetadata(id: Long, syncStatus: Int, remoteId: Long? = null, syncError: String? = null): Boolean {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_SYNC_STATUS, syncStatus)
+            if (remoteId != null) put(COL_REMOTE_ID, remoteId)
+            put(COL_SYNC_ERROR, syncError)
+            put(COL_UPDATED_AT, System.currentTimeMillis())
+        }
+        val rowsAffected = db.update(
+            TABLE_PAYROLL,
+            values,
+            "$COL_ID = ?",
+            arrayOf(id.toString())
         )
         return rowsAffected > 0
     }
@@ -199,6 +243,13 @@ class PayrollDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         val issueDate = cursor.getString(cursor.getColumnIndexOrThrow(COL_ISSUE_DATE)).orEmpty()
         val createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(COL_CREATED_AT))
 
+        val syncStatus = cursor.getInt(cursor.getColumnIndexOrThrow(COL_SYNC_STATUS))
+        val remoteIdIndex = cursor.getColumnIndexOrThrow(COL_REMOTE_ID)
+        val remoteId = if (cursor.isNull(remoteIdIndex)) null else cursor.getLong(remoteIdIndex)
+        val syncErrorIndex = cursor.getColumnIndexOrThrow(COL_SYNC_ERROR)
+        val syncError = if (cursor.isNull(syncErrorIndex)) null else cursor.getString(syncErrorIndex)
+        val updatedAt = cursor.getLong(cursor.getColumnIndexOrThrow(COL_UPDATED_AT))
+
         return EmployeePayrollData(
             id = id,
             firstName = firstName,
@@ -209,13 +260,40 @@ class PayrollDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             bonusPercentage = bonusPercentage,
             voucherFolio = folio,
             issueDate = issueDate,
-            createdAt = createdAt
+            createdAt = createdAt,
+            syncStatus = syncStatus,
+            remoteId = remoteId,
+            syncError = syncError,
+            updatedAt = updatedAt
         )
+    }
+
+    /**
+     * Obtiene todos los registros con un determinado estado de sincronización.
+     */
+    fun getBySyncStatus(status: Int): List<EmployeePayrollData> {
+        val list = mutableListOf<EmployeePayrollData>()
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_PAYROLL,
+            null,
+            "$COL_SYNC_STATUS = ?",
+            arrayOf(status.toString()),
+            null,
+            null,
+            "$COL_CREATED_AT ASC"
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                list.add(cursorToPayroll(it))
+            }
+        }
+        return list
     }
 
     companion object {
         const val DATABASE_NAME = "smart_payroll.db"
-        const val DATABASE_VERSION = 1
+        const val DATABASE_VERSION = 2
 
         const val TABLE_PAYROLL = "payroll_records"
         const val COL_ID = "id"
@@ -228,5 +306,9 @@ class PayrollDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         const val COL_BONUS_PERCENTAGE = "bonus_percentage"
         const val COL_ISSUE_DATE = "issue_date"
         const val COL_CREATED_AT = "created_at"
+        const val COL_SYNC_STATUS = "sync_status"
+        const val COL_REMOTE_ID = "remote_id"
+        const val COL_SYNC_ERROR = "sync_error"
+        const val COL_UPDATED_AT = "updated_at"
     }
 }

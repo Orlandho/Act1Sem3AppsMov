@@ -142,6 +142,19 @@
                 android:textStyle="bold"
                 tools:text="⚡ +8.0h extras" />
 
+            <TextView
+                android:id="@+id/tvItemSyncBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_pill_badge"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:text="☁️ SYNC"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                tools:text="☁️ SINCRONIZADO" />
+
             <View
                 android:layout_width="0dp"
                 android:layout_height="1dp"

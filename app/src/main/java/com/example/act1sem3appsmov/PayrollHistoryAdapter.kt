@@ -51,6 +51,25 @@ class PayrollHistoryAdapter(
                 binding.tvItemOvertime.visibility = View.GONE
             }
 
+            // Badge de sincronización MySQL
+            when (item.syncStatus) {
+                EmployeePayrollData.SYNC_STATUS_SYNCED -> {
+                    binding.tvItemSyncBadge.text = "☁️ SINCRONIZADO"
+                    binding.tvItemSyncBadge.setBackgroundResource(R.drawable.bg_pill_badge_emerald)
+                    binding.tvItemSyncBadge.setTextColor(binding.root.context.getColor(R.color.on_accent_emerald))
+                }
+                EmployeePayrollData.SYNC_STATUS_ERROR -> {
+                    binding.tvItemSyncBadge.text = "⚠️ ERROR SYNC"
+                    binding.tvItemSyncBadge.setBackgroundResource(R.drawable.bg_pill_badge_amber)
+                    binding.tvItemSyncBadge.setTextColor(binding.root.context.getColor(R.color.on_accent_amber))
+                }
+                else -> {
+                    binding.tvItemSyncBadge.text = "⏳ PENDIENTE"
+                    binding.tvItemSyncBadge.setBackgroundResource(R.drawable.bg_pill_badge)
+                    binding.tvItemSyncBadge.setTextColor(binding.root.context.getColor(R.color.primary))
+                }
+            }
+
             // Listeners de acción
             binding.btnItemView.setOnClickListener { onViewClick(item) }
             binding.btnItemEdit.setOnClickListener { onEditClick(item) }

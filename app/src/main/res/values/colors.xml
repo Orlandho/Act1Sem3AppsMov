@@ -12,6 +12,7 @@
     <color name="secondary_dark">#047857</color>
     <color name="secondary_light">#ECFDF5</color>
     <color name="on_secondary">#FFFFFF</color>
+    <color name="on_accent_emerald">#064E3B</color>
 
     <!-- Tertiary / Amber (Overtime & Highlights) -->
     <color name="accent_amber">#F59E0B</color>

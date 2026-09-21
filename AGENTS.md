@@ -10,15 +10,18 @@ Este documento especifica las directrices arquitectónicas, reglas de negocio e 
 * **UI Toolkit:** Android Views (XML) con **ViewBinding**
 * **Librería de Componentes:** Google Material Design 3 (`com.google.android.material:material:1.14.0`)
 * **SDK:** `minSdk = 27`, `targetSdk = 37`, `compileSdk = 37`
+* **Persistencia Híbrida Resiliente:**
+  * **Capa Local (SSOT):** SQLite nativo (`PayrollDbHelper`) para persistencia inmediata a 0 ms (Offline-First).
+  * **Capa Remota:** MySQL 5.7 / 8.x vía MariaDB Connector/J (`org.mariadb.jdbc:mariadb-java-client:3.3.3`) con JDBC directo, timeouts defensivos (4s) y operaciones en segundo plano (`Dispatchers.IO`).
+  * **Coordinador:** `PayrollRepository` gestiona estados de sincronización (`PENDING`, `SYNCED`, `ERROR`).
 
 ---
 
-## 📱 Flujo de Navegación de 3 Vistas
-El proyecto implementa un flujo secuencial estricto de exactamente **3 Vistas**:
+## 📱 Flujo de Navegación y Vistas
 
 ```mermaid
 flowchart LR
-    A["Vista 1: MainActivity\nCaptura de Colaborador\n(Inputs Inmutables)"] -->|Intent con Serializable/Parcelable| B["Vista 2: PayrollDetailActivity\nLiquidación y Ajustes\n(Desglose + Slider)"]
+    A["Vista 1: MainActivity\nCaptura de Colaborador\n(Inputs Inmutables)"] -->|Intent con Serializable| B["Vista 2: PayrollDetailActivity\nLiquidación y Ajustes\n(Desglose + Slider)"]
     B -->|Intent con Datos Consolidados| C["Vista 3: VoucherActivity\nBoleta Oficial Foliada\n(Descarga .txt + Compartir)"]
     C -.->|finish| B
     C -.->|FLAG_ACTIVITY_CLEAR_TOP| A
@@ -43,17 +46,37 @@ flowchart LR
 
 ### 3. Vista 3 (`VoucherActivity.kt` & `activity_voucher.xml`)
 * Genera folio único con timestamp.
-* **Descarga de Boleta:** Implementa el Storage Access Framework (SAF) con `ActivityResultContracts.CreateDocument("text/plain")` para guardar el archivo `.txt` en almacenamiento local con codificación UTF-8 sin requerir permisos peligrosos.
+* **Persistencia Resiliente:** Llama a `PayrollRepository.getInstance(this).savePayroll(data)` para persistir en SQLite y replicar asíncronamente a MySQL.
+* **Descarga de Boleta:** Implementa el Storage Access Framework (SAF) con `ActivityResultContracts.CreateDocument("text/plain")` para guardar el archivo `.txt` en almacenamiento local con codificación UTF-8.
 * **Compartir Comprobante:** Despacha un Intent implícito con `ACTION_SEND` (`Intent.createChooser`).
 * **Reinicio:** Permite volver a `MainActivity` con `FLAG_ACTIVITY_CLEAR_TOP or FLAG_ACTIVITY_NEW_TASK`.
+
+### 4. Dashboard Ejecutivo (`DashboardActivity.kt` & `activity_dashboard.xml`)
+* Launcher principal de la aplicación.
+* Métricas en tiempo real (Masa salarial total, recargos por horas extras, promedio neto, total de boletas).
+* Control de sincronización MySQL con diagnóstico interactivo, botón de sincronización en lote y modal de configuración dinámica de servidor.
+
+---
+
+## 🗄️ Arquitectura de Persistencia Resiliente a Fallos (Offline-First)
+
+```mermaid
+flowchart TD
+    UI["Vistas (MainActivity / Voucher / Dashboard)"] -->|Guardar / Actualizar| REPO["PayrollRepository\n(Coordinador de Dominio)"]
+    REPO -->|1. Inmediato (0ms)| SQLITE[("SQLite Local (smart_payroll.db)\nsync_status: PENDING")]
+    REPO -->|2. Background (Dispatchers.IO)| COROUTINE["Worker Asíncrono"]
+    COROUTINE -->|3. Transacción JDBC (Timeout 4s)| MYSQL[("Servidor MySQL (smart_payroll_db)\nPuerto 3306")]
+    MYSQL -.->|Éxito: Marcar SYNCED| SQLITE
+    MYSQL -.->|Fallo: Preservar en SQLite (Sin Crash)| SQLITE
+```
 
 ---
 
 ## 🧪 Pruebas Automatizadas (CI/CD)
 Antes de someter cualquier Pull Request o commit:
-1. Las fórmulas de nómina en `EmployeePayrollData.kt` deben tener cobertura en `EmployeePayrollDataTest.kt`.
+1. Las fórmulas de nómina en `EmployeePayrollData.kt` y el ciclo de vida de sincronización deben tener cobertura en `EmployeePayrollDataTest.kt`.
 2. Debe ejecutarse y pasar la suite completa de pruebas unitarias:
    ```bash
    ./gradlew testDebugUnitTest --no-daemon
    ```
-3. El workflow `.github/workflows/jules-ci.yml` debe validar la compilación exitosa.
+3. El workflow `.github/workflows/jules-ci.yml` debe validar la compilación exitosa en GitHub Actions.

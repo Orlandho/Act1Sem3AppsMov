@@ -1,7 +1,9 @@
-# SmartPayroll Pro — Sistema Móvil de Liquidación de Nómina y Boletas
+# SmartPayroll Pro — Sistema Móvil de Liquidación de Nómina con MySQL Resiliente
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9%2B-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
-[![Android](https://img.shields.io/badge/Android-SDK%2034%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
+[![Android](https://img.shields.io/badge/Android-SDK%2027%2B%20%2F%2037-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
+[![MySQL](https://img.shields.io/badge/MySQL-5.7%20%7C%208.x-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![SQLite](https://img.shields.io/badge/SQLite-Offline--First-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Material 3](https://img.shields.io/badge/UI-Material%20Design%203-795548?logo=materialdesign&logoColor=white)](https://m3.material.io/)
 [![Gradle](https://img.shields.io/badge/Gradle-8.7-02303A?logo=gradle&logoColor=white)](https://gradle.org/)
 
@@ -16,33 +18,110 @@ Aplicación móvil nativa en **Android (Kotlin)** desarrollada para la **Activid
 - **Carrera:** Ingeniería de Sistemas Computacionales
 - **Curso:** Desarrollo de Aplicaciones Móviles (2026-II)
 - **Estudiante:** Orlando Dorival
-- **Tema:** Arquitectura multi-actividad, transferencia desacoplada de estado mediante `Serializable` y diseño Material 3
+- **Tema:** Persistencia permanente en **Base de Datos MySQL**, arquitectura híbrida **Offline-First**, navegación multi-actividad con `Serializable` y diseño Material 3.
 
 ---
 
-## 💼 Perfil Profesional y Competencias Android Demostradas
+## 🌐 Arquitectura Resiliente a Fallos (Offline-First + MySQL)
 
-Este desarrollo evidencia sólidas bases en desarrollo móvil moderno con Android y Kotlin:
-1. **Flujo Multi-Pantalla Secuencial y Desacoplado:** Navegación entre 3 Activities (`MainActivity` → `PayrollDetailActivity` → `VoucherActivity`) utilizando `Explicit Intents` y transferencia segura de modelos serializables con `Bundle/Extras`.
-2. **Modelo de Dominio y Reglas Laborales Formales:** Encapsulación de lógica en la clase de datos `EmployeePayrollData`:
-   - Límite de jornada ordinaria (40 horas semanales).
-   - Cálculo automático de sobretiempo / horas extra con recargo del 50% (factor 1.5x).
-   - Bonificaciones porcentuales configurables.
-   - Retenciones legales de ley: Aportes de Salud (4%) y Fondo de Pensión (4%).
-   - Clasificación dinámica de jerarquía del colaborador (*Associate Junior*, *Professional Mid*, *Senior Specialist*).
-3. **Diseño de Interfaz de Usuario Avanzado:** Material 3 con modo oscuro/claro, badges dinámicos con estados (`bg_pill_badge`, `bg_stamp_approved`), formato monetario localizado (`NumberFormat.getCurrencyInstance`) y compatibilidad Edge-to-Edge (`WindowInsetsCompat`).
-4. **Integración con Servicios Nativos del Sistema Operativo:** Generación y exportación de comprobante oficial de pago mediante `Intent.ACTION_SEND` para compartir vía WhatsApp, Gmail o mensajería corporativa.
-5. **Calidad y Pruebas Unitarias:** Cobertura de cálculos de nómina mediante pruebas unitarias en `src/test/java` con JUnit.
+Para responder a la solicitud docente de persistencia permanente en **MySQL**, se diseñó una **Arquitectura Híbrida Tolerante a Fallos**:
+
+En entornos móviles, los dispositivos enfrentan cortes de red, cambios de IP o servidores locales apagados (XAMPP / Docker / Workbench). Una aplicación que dependa únicamente de llamadas síncronas remotas sufriría cuelgues (ANR), bloqueos de hilo principal o pérdida irreparable de liquidaciones.
+
+```mermaid
+flowchart TD
+    subgraph UI["Capa de Presentación Android (Material Design 3)"]
+        V1["Vista 1: MainActivity\n(5 Inputs Inmutables de Nómina)"]
+        V2["Vista 2: PayrollDetailActivity\n(Liquidación, Horas Extras 150% & Slider Bono)"]
+        V3["Vista 3: VoucherActivity\n(Boleta Oficial Foliada, SAF .txt & Compartir)"]
+        DASH["DashboardActivity\n(KPIs Financieros, Historial CRUD & Estado MySQL)"]
+        EDIT["EditPayrollActivity\n(Edición Integral con Recálculo en Vivo)"]
+        DIALOG["DialogMySQLConfig\n(Ajustes de Host, Puerto, Credenciales & Ping)"]
+    end
+
+    subgraph Repository_Layer["Capa de Coordinación Resiliente (Repository Pattern)"]
+        REPO["PayrollRepository\n(Single Source of Truth & Orquestador)"]
+        CONFIG["MySQLConfig\n(SharedPreferences Dinámicas)"]
+    end
+
+    subgraph Local_Storage["Capa Local: Inmediatez & Offline-First"]
+        SQLITE[("SQLite Local - smart_payroll.db\n(0ms Latencia - Cero Pérdida de Datos)\nTabla: payroll_records")]
+    end
+
+    subgraph Async_Engine["Capa Asíncrona: Motor de Sincronización"]
+        COROUTINE["CoroutineScope - Dispatchers.IO\n(Timeouts Defensivos 4s, Cero Cuelgues)"]
+        JDBC_MGR["MySQLDbManager\n(Conector MariaDB/MySQL JDBC & Auto-DDL)"]
+    end
+
+    subgraph Remote_DB["Capa Remota: Persistencia Permanente Externa"]
+        MYSQL[("Servidor MySQL - smart_payroll_db\nPuerto 3306 - XAMPP / Docker / Cloud\nTabla: payroll_records")]
+    end
+
+    V1 -->|"Intent Explícito"| V2
+    V2 -->|"Intent Explícito"| V3
+    V3 -->|"1. Guardar Liquidación"| REPO
+    EDIT -->|"1. Actualizar Liquidación"| REPO
+    DASH -->|"1. Eliminar o Sincronizar Lote"| REPO
+    DASH -.->|"Configurar Conexión"| DIALOG
+    DIALOG -.->|"Guardar Ajustes"| CONFIG
+    CONFIG -.->|"Inyectar Parámetros"| JDBC_MGR
+
+    REPO -->|"2. Escritura Atómica Local (sync: PENDING)"| SQLITE
+    REPO -->|"3. Despachar Replicación en Background"| COROUTINE
+    COROUTINE -->|"4. Ejecutar Transacción JDBC Segura"| JDBC_MGR
+    JDBC_MGR -->|"5. SQL Remoto INSERT / UPDATE / DELETE"| MYSQL
+
+    MYSQL -.->|"6a. Éxito: Marcar SYNCED"| SQLITE
+    MYSQL -.->|"6b. Fallo / Offline: Preservar en SQLite"| SQLITE
+    SQLITE -->|"7. Refrescar Métricas en Tiempo Real"| DASH
+```
+
+> **Diagrama Vectorial Escalable:** Puedes visualizar el diagrama vectorial SVG compilado en [`mermaid diagramas/arquitectura_resiliente_mysql.svg`](mermaid%20diagramas/arquitectura_resiliente_mysql.svg).
+
+### Pilares de la Resiliencia:
+1. **Single Source of Truth (SSOT) Local en SQLite:** Todo cálculo o modificación se guarda inmediatamente en la base de datos local `smart_payroll.db` (latencia 0 ms). Nunca se pierden datos si no hay conectividad.
+2. **Replicación Asíncrona con Timeouts Defensivos:** Un hilo dedicado en segundo plano (`Dispatchers.IO`) gestiona la conexión JDBC MariaDB/MySQL con un timeout estricto de 4 segundos, previniendo congelamientos de interfaz.
+3. **Auditoría de Estados de Sincronización:** Cada registro rastrea si está `SYNC_STATUS_SYNCED` (1, Nube verde), `SYNC_STATUS_PENDING` (0, Nube amarilla) o `SYNC_STATUS_ERROR` (2, Modo local/offline).
+4. **Sincronización en Lote (Batch Sync):** Un botón interactivo en el Dashboard permite reintentar y subir masivamente todos los comprobantes pendientes una vez restablecida la conexión con MySQL.
+5. **Configuración Dinámica de Servidor:** Diálogo integrado para modificar IP/Host, puerto, base de datos y credenciales en caliente sin necesidad de recompilar la aplicación.
 
 ---
 
-## 📱 Flujo de Navegación de la Aplicación
+## 🗄️ Configuración de la Base de Datos MySQL
+
+### Opción A: Importación con Script SQL (`smart_payroll.sql`)
+1. Inicia tu servidor MySQL (vía **XAMPP**, **WampServer**, **MySQL Workbench** o **Docker**).
+2. Abre tu gestor de base de datos preferido (ej. phpMyAdmin en `http://localhost/phpmyadmin`).
+3. Importa el archivo maestro incluido en el proyecto: [`smart_payroll.sql`](smart_payroll.sql).
+4. El script creará la base de datos `smart_payroll_db`, la tabla `payroll_records` con índices optimizados y cargará 3 registros de prueba.
+
+### Opción B: Auto-creación DDL Automática desde la App
+Si el servidor MySQL está activo pero la base de datos o la tabla no existen, la aplicación Android detectará la ausencia y ejecutará automáticamente la sentencia `CREATE DATABASE IF NOT EXISTS` y `CREATE TABLE IF NOT EXISTS` en su primer contacto.
+
+### 🔌 Parámetros de Red y Conexión en Android:
+- **En Emulador de Android Studio:** Usa el host `10.0.2.2` (alias que Android asigna a la máquina anfitriona donde corre MySQL).
+- **En Dispositivo Físico:** Conecta tu celular a la misma red Wi-Fi que tu PC y coloca la IP local de tu computadora (ej. `192.168.1.50`).
+- **Puerto:** `3306` (puerto estándar MySQL).
+- **Usuario / Clave:** `root` / `""` (valores por defecto de XAMPP, editables desde la app).
+
+---
+
+## 📱 Flujo de las 3 Vistas Oficiales (Inmutables)
 
 ```mermaid
 flowchart LR
-    A["MainActivity\nCaptura de Colaborador\n(Horas, Tarifa, Bono)"] -->|Intent con Serializable| B["PayrollDetailActivity\nDesglose de Liquidación\n(Bruto, Descuentos, Neto)"]
-    B -->|Intent con Datos Aprobados| C["VoucherActivity\nBoleta Oficial Foliada\n(Compartir por WhatsApp/Email)"]
+    A["MainActivity\nCaptura de Colaborador\n(5 Parámetros Inmutables)"] -->|Intent con Serializable| B["PayrollDetailActivity\nDesglose de Liquidación\n(Horas Extras, Descuentos & Bono)"]
+    B -->|Intent con Datos Aprobados| C["VoucherActivity\nBoleta Oficial Foliada\n(SAF .txt, Compartir & Persistencia)"]
 ```
+
+1. **Vista 1 (`MainActivity`):** Captura estricta de los 5 parámetros exigidos por la cátedra docente:
+   - `Nombres` (`etFirstName`)
+   - `Apellidos` (`etLastName`)
+   - `Código de Colaborador` (`etEmployeeCode`)
+   - `Tarifa por Hora` (`etHourlyRate`)
+   - `Horas Trabajadas` (`etHoursWorked`)
+2. **Vista 2 (`PayrollDetailActivity`):** Liquidación con slider interactivo de bono (0% a 30%), desglose de jornada legal (40 hrs), recargo del 150% en horas extraordinarias y retenciones de ley (Salud 4%, Pensión 4%).
+3. **Vista 3 (`VoucherActivity`):** Boleta foliada con sello de auditoría, descarga de archivo `.txt` mediante Storage Access Framework (SAF), despacho por Intent implícito (`ACTION_SEND`) y almacenamiento automático en SQLite y MySQL.
 
 ---
 
@@ -62,27 +141,32 @@ $$\text{Total Neto} = \text{Total Bruto} - \text{Deducciones}$$
 
 ---
 
-## 🛠️ Tecnologías y Herramientas
+## 🧪 Pruebas Unitarias y Automatización
 
-- **Lenguaje:** Kotlin 1.9+
-- **Plataforma:** Android SDK Min 24 / Target 34
-- **Arquitectura UI:** ViewBinding, ConstraintLayout, MaterialCardView
-- **Testing:** JUnit 4 / AndroidX Test Runner
-- **Build System:** Gradle (Kotlin DSL)
+Para validar la solidez de las fórmulas matemáticas, transiciones de estado de sincronización y ciclo de vida CRUD, se ejecutan las pruebas unitarias:
+
+```powershell
+./gradlew testDebugUnitTest --no-daemon
+```
+
+*Resultado de verificación local:* **100% de pruebas superadas (28 tareas ejecutadas con éxito)**.
+*Integración continua:* Validado automáticamente en GitHub Actions mediante el workflow `.github/workflows/jules-ci.yml`.
 
 ---
 
-## 🚀 Compilación e Instalación
+## 🚀 Compilación y Ejecución
 
 ### Desde Android Studio
 1. Clonar el repositorio:
    ```bash
    git clone https://github.com/Orlandho/Act1Sem3AppsMov.git
    ```
-2. Abrir el proyecto en **Android Studio Jellyfish / Koala** o superior.
-3. Sincronizar Gradle y ejecutar en emulador o dispositivo físico con Android 7.0+.
+2. Abrir en **Android Studio**.
+3. Sincronizar Gradle y ejecutar en el emulador (recuerda que el host por defecto `10.0.2.2` se conecta automáticamente a tu MySQL en `localhost:3306`).
 
 ### Desde Consola
 ```powershell
 ./gradlew.bat assembleDebug
 ```
+El APK resultante se generará en:
+`app/build/outputs/apk/debug/app-debug.apk`

@@ -192,16 +192,18 @@ class EditPayrollActivity : AppCompatActivity() {
             bonusPercentage = bonus
         )
 
-        val success = dbHelper.update(updated)
-        if (success) {
-            val resultIntent = android.content.Intent().apply {
-                putExtra(EmployeePayrollData.EXTRA_PAYROLL_DATA, updated)
+        val repository = PayrollRepository.getInstance(this)
+        repository.updatePayroll(updated) { success ->
+            if (success) {
+                val resultIntent = android.content.Intent().apply {
+                    putExtra(EmployeePayrollData.EXTRA_PAYROLL_DATA, updated)
+                }
+                setResult(RESULT_OK, resultIntent)
+                Toast.makeText(this, "✅ Liquidación actualizada (Sincronización a MySQL despachada)", Toast.LENGTH_LONG).show()
+                finish()
+            } else {
+                Toast.makeText(this, "Error al actualizar la base de datos", Toast.LENGTH_SHORT).show()
             }
-            setResult(RESULT_OK, resultIntent)
-            Toast.makeText(this, "✅ Liquidación actualizada en el historial", Toast.LENGTH_LONG).show()
-            finish()
-        } else {
-            Toast.makeText(this, "Error al actualizar la base de datos", Toast.LENGTH_SHORT).show()
         }
     }
 }

@@ -51,6 +51,25 @@ class PayrollHistoryAdapter(
                 binding.tvItemOvertime.visibility = View.GONE
             }
 
+            // Estado de Sincronización MySQL (Offline-First)
+            when (item.syncStatus) {
+                EmployeePayrollData.SYNC_STATUS_SYNCED -> {
+                    binding.tvItemSyncStatus.text = "🟢 MySQL"
+                    binding.tvItemSyncStatus.setBackgroundResource(R.drawable.bg_pill_badge_emerald)
+                    binding.tvItemSyncStatus.setTextColor(binding.root.context.getColor(R.color.on_accent_emerald))
+                }
+                EmployeePayrollData.SYNC_STATUS_ERROR -> {
+                    binding.tvItemSyncStatus.text = "🔴 Offline"
+                    binding.tvItemSyncStatus.setBackgroundResource(R.drawable.bg_pill_badge_amber)
+                    binding.tvItemSyncStatus.setTextColor(binding.root.context.getColor(R.color.on_accent_amber))
+                }
+                else -> {
+                    binding.tvItemSyncStatus.text = "🟡 Pendiente"
+                    binding.tvItemSyncStatus.setBackgroundResource(R.drawable.bg_pill_badge_amber)
+                    binding.tvItemSyncStatus.setTextColor(binding.root.context.getColor(R.color.on_accent_amber))
+                }
+            }
+
             // Listeners de acción
             binding.btnItemView.setOnClickListener { onViewClick(item) }
             binding.btnItemEdit.setOnClickListener { onEditClick(item) }

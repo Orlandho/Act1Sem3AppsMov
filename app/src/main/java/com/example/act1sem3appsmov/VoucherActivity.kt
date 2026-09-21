@@ -98,12 +98,12 @@ class VoucherActivity : AppCompatActivity() {
             data.voucherFolio = voucherFolio
             data.issueDate = issueDate
 
-            // Persistir automáticamente en SQLite (CREATE)
-            val dbHelper = PayrollDbHelper(this)
-            val newId = dbHelper.insert(data)
-            if (newId > 0) {
-                payrollData = data.copy(id = newId)
-                Toast.makeText(this, "✅ Liquidación guardada en el historial", Toast.LENGTH_SHORT).show()
+            // Persistir de forma resiliente mediante PayrollRepository (SQLite Local + MySQL Background)
+            val repository = PayrollRepository.getInstance(this)
+            repository.savePayroll(data) { saved ->
+                payrollData = saved
+                setupSyncBadge(saved)
+                Toast.makeText(this, "✅ Liquidación guardada (Sincronización MySQL despachada)", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -119,6 +119,8 @@ class VoucherActivity : AppCompatActivity() {
         binding.tvVoucherCode.text = "ID: ${data.employeeCode}"
         binding.tvVoucherRank.text = data.employeeRank
 
+        setupSyncBadge(data)
+
         // Conceptos detallados
         binding.tvConceptRegularLabel.text = "Horas Regulares (${"%.1f".format(data.regularHours)}h x ${data.formatMoney(data.hourlyRate)})"
         binding.tvConceptRegularPay.text = data.formatMoney(data.regularPay)
@@ -133,6 +135,26 @@ class VoucherActivity : AppCompatActivity() {
 
         // Total Neto a pagar
         binding.tvVoucherNetPay.text = data.formatMoney(data.netPay)
+    }
+
+    private fun setupSyncBadge(data: EmployeePayrollData) {
+        when (data.syncStatus) {
+            EmployeePayrollData.SYNC_STATUS_SYNCED -> {
+                binding.tvVoucherSyncStatus.text = "🟢 Sincronizado en MySQL"
+                binding.tvVoucherSyncStatus.setBackgroundResource(R.drawable.bg_pill_badge_emerald)
+                binding.tvVoucherSyncStatus.setTextColor(getColor(R.color.on_accent_emerald))
+            }
+            EmployeePayrollData.SYNC_STATUS_ERROR -> {
+                binding.tvVoucherSyncStatus.text = "🔴 Guardado Local (Offline)"
+                binding.tvVoucherSyncStatus.setBackgroundResource(R.drawable.bg_pill_badge_amber)
+                binding.tvVoucherSyncStatus.setTextColor(getColor(R.color.on_accent_amber))
+            }
+            else -> {
+                binding.tvVoucherSyncStatus.text = "🟡 Pendiente de MySQL"
+                binding.tvVoucherSyncStatus.setBackgroundResource(R.drawable.bg_pill_badge_amber)
+                binding.tvVoucherSyncStatus.setTextColor(getColor(R.color.on_accent_amber))
+            }
+        }
     }
 
     private fun setupListeners() {

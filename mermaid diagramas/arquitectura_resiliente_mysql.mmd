@@ -1,0 +1,45 @@
+flowchart TD
+    subgraph UI["Capa de Presentación Android (Material Design 3)"]
+        V1["Vista 1: MainActivity\n(5 Inputs Inmutables de Nómina)"]
+        V2["Vista 2: PayrollDetailActivity\n(Liquidación, Horas Extras 150% & Slider Bono)"]
+        V3["Vista 3: VoucherActivity\n(Boleta Oficial Foliada, SAF .txt & Compartir)"]
+        DASH["DashboardActivity\n(KPIs Financieros, Historial CRUD & Estado MySQL)"]
+        EDIT["EditPayrollActivity\n(Edición Integral con Recálculo en Vivo)"]
+        DIALOG["DialogMySQLConfig\n(Ajustes de Host, Puerto, Credenciales & Ping)"]
+    end
+
+    subgraph Repository_Layer["Capa de Coordinación Resiliente (Repository Pattern)"]
+        REPO["PayrollRepository\n(Single Source of Truth & Orquestador)"]
+        CONFIG["MySQLConfig\n(SharedPreferences Dinámicas)"]
+    end
+
+    subgraph Local_Storage["Capa Local: Inmediatez & Offline-First"]
+        SQLITE[("SQLite Local - smart_payroll.db\n(0ms Latencia - Cero Pérdida de Datos)\nTabla: payroll_records")]
+    end
+
+    subgraph Async_Engine["Capa Asíncrona: Motor de Sincronización"]
+        COROUTINE["CoroutineScope - Dispatchers.IO\n(Timeouts Defensivos 4s, Cero Cuelgues)"]
+        JDBC_MGR["MySQLDbManager\n(Conector MariaDB/MySQL JDBC & Auto-DDL)"]
+    end
+
+    subgraph Remote_DB["Capa Remota: Persistencia Permanente Externa"]
+        MYSQL[("Servidor MySQL - smart_payroll_db\nPuerto 3306 - XAMPP / Docker / Cloud\nTabla: payroll_records")]
+    end
+
+    V1 -->|"Intent Explícito"| V2
+    V2 -->|"Intent Explícito"| V3
+    V3 -->|"1. Guardar Liquidación"| REPO
+    EDIT -->|"1. Actualizar Liquidación"| REPO
+    DASH -->|"1. Eliminar o Sincronizar Lote"| REPO
+    DASH -.->|"Configurar Conexión"| DIALOG
+    DIALOG -.->|"Guardar Ajustes"| CONFIG
+    CONFIG -.->|"Inyectar Parámetros"| JDBC_MGR
+
+    REPO -->|"2. Escritura Atómica Local (sync: PENDING)"| SQLITE
+    REPO -->|"3. Despachar Replicación en Background"| COROUTINE
+    COROUTINE -->|"4. Ejecutar Transacción JDBC Segura"| JDBC_MGR
+    JDBC_MGR -->|"5. SQL Remoto INSERT / UPDATE / DELETE"| MYSQL
+
+    MYSQL -.->|"6a. Éxito: Marcar SYNCED"| SQLITE
+    MYSQL -.->|"6b. Fallo / Offline: Preservar en SQLite"| SQLITE
+    SQLITE -->|"7. Refrescar Métricas en Tiempo Real"| DASH

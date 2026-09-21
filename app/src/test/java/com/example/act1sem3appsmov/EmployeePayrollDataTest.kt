@@ -122,4 +122,40 @@ class EmployeePayrollDataTest {
         assertEquals(1794.0, updated.grossPay, 0.001)
         assertEquals(1650.48, updated.netPay, 0.001)
     }
+
+    @Test
+    fun syncStatusLifecycle_transitionsCorrectly() {
+        val payroll = EmployeePayrollData(
+            firstName = "Orlando",
+            lastName = "Dorival",
+            employeeCode = "EMP-999",
+            hourlyRate = 40.0,
+            hoursWorked = 40.0,
+            bonusPercentage = 10.0
+        )
+
+        // Estado inicial debe ser PENDING (Offline-First)
+        assertEquals(EmployeePayrollData.SYNC_STATUS_PENDING, payroll.syncStatus)
+        assertEquals(0L, payroll.remoteId)
+        assertTrue(payroll.syncMessage.isEmpty())
+
+        // Simular éxito de replicación en MySQL
+        val synced = payroll.copy(
+            syncStatus = EmployeePayrollData.SYNC_STATUS_SYNCED,
+            remoteId = 101L,
+            syncMessage = "Sincronizado exitosamente con MySQL"
+        )
+        assertEquals(EmployeePayrollData.SYNC_STATUS_SYNCED, synced.syncStatus)
+        assertEquals(101L, synced.remoteId)
+        assertEquals("Sincronizado exitosamente con MySQL", synced.syncMessage)
+
+        // Simular fallo de conexión (Servidor apagado / timeout)
+        val offlineFailed = payroll.copy(
+            syncStatus = EmployeePayrollData.SYNC_STATUS_ERROR,
+            syncMessage = "Connection refused: connect"
+        )
+        assertEquals(EmployeePayrollData.SYNC_STATUS_ERROR, offlineFailed.syncStatus)
+        assertTrue(offlineFailed.syncMessage.contains("Connection refused"))
+    }
 }
+

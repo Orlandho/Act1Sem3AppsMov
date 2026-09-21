@@ -81,6 +81,77 @@
                 android:orientation="vertical"
                 android:paddingHorizontal="16dp">
 
+                <!-- Barra de Sincronización MySQL Resiliente (Offline-First) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardMySQLStatus"
+                    style="@style/CardModern"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardElevation="3dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="12dp">
+
+                        <TextView
+                            android:id="@+id/tvMySQLStatusIcon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🌐"
+                            android:textSize="20sp" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvMySQLStatusTitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Base de Datos MySQL"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvMySQLStatusSubtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Estado de sincronización"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <!-- Botón Sincronizar -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSyncMySQL"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:paddingHorizontal="10dp"
+                            android:text="🔄 Sincronizar"
+                            android:textSize="11sp" />
+
+                        <!-- Botón Configurar MySQL -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnConfigMySQL"
+                            style="@style/Widget.Material3.Button.IconButton"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="Configuración MySQL"
+                            android:text="⚙️"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
                 <!-- Fila 1 de Métricas: Masa Salarial & Total Colaboradores -->
                 <LinearLayout
                     android:layout_width="match_parent"
